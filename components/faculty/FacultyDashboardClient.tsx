@@ -7,6 +7,7 @@ import LeaveRequestForm from '@/components/faculty/LeaveRequestForm'
 import ApprovedLeaveCard from '@/components/faculty/ApprovedLeaveCard'
 import LeaveHistory from '@/components/faculty/LeaveHistory'
 import BottomNav from '@/components/ui/BottomNav'
+import AvatarUpload from '@/components/ui/AvatarUpload'
 
 const TABS = [
   { id: 'home', label: 'Home', icon: 'grid_view' },
@@ -85,8 +86,14 @@ export default function FacultyDashboardClient({ profile }: { profile: Profile }
         {/* Profile Card — always visible */}
         <section className="p-4">
           <div className="flex items-center gap-4 rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm border border-slate-100 dark:border-slate-800">
-            <div className="h-16 w-16 rounded-full ring-2 ring-primary/20 bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold flex-shrink-0">
-              {initials}
+            <div className="h-16 w-16 rounded-full ring-2 ring-primary/20 flex-shrink-0 overflow-hidden">
+              {profile.avatar_url ? (
+                <img src={profile.avatar_url} alt={profile.full_name} className="h-full w-full object-cover rounded-full" />
+              ) : (
+                <div className="h-full w-full rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl font-bold">
+                  {initials}
+                </div>
+              )}
             </div>
             <div>
               <h2 className="text-xl font-bold">{profile.full_name}</h2>
@@ -150,13 +157,23 @@ export default function FacultyDashboardClient({ profile }: { profile: Profile }
 
         {activeTab === 'profile' && (
           <section className="p-4 space-y-4">
-            <div className="rounded-xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
+            <div className="rounded-xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-lg">Profile Details</h3>
                 <button onClick={() => setEditMode(e => !e)} className="text-primary text-sm font-semibold flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">{editMode ? 'close' : 'edit'}</span>
                   {editMode ? 'Cancel' : 'Edit'}
                 </button>
+              </div>
+
+              {/* Avatar Upload */}
+              <div className="flex justify-center py-2">
+                <AvatarUpload
+                  userId={profile.id}
+                  currentUrl={profile.avatar_url}
+                  initials={initials}
+                  size="lg"
+                />
               </div>
               {editMode ? (
                 <div className="space-y-3">
