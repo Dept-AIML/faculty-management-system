@@ -1,20 +1,36 @@
 import { NextResponse } from 'next/server'
-import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  // 1. Verify the caller is a logged-in HOD
-  const supabase = await createServerClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  // 1. Get logged-in user from session cookie
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {},
+      },
+    }
+  )
 
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Check role from profiles (server-side — no RLS issue here)
-  const { data: profile } = await supabase
+  // 2. Use admin client (bypasses RLS) to verify HOD role + fetch data
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { data: profile } = await admin
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -24,17 +40,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden — HOD only' }, { status: 403 })
   }
 
-  // 2. Use service role client to bypass RLS and fetch ALL leave requests
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return NextResponse.json({ error: 'Service role key not configured' }, { status: 500 })
-  }
-
-  const adminClient = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
-  const { data, error } = await adminClient
+  // 3. Fetch all leave requests with faculty profiles
+  const { data, error } = await admin
     .from('leave_requests')
     .select('*, profiles(*)')
     .order('created_at', { ascending: false })
