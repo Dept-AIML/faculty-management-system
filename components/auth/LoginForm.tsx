@@ -79,7 +79,7 @@ export default function LoginForm() {
         {/* Header */}
         <div className="text-center mb-8 px-4">
           <h1 className="text-slate-900 dark:text-slate-100 text-3xl font-bold tracking-tight leading-tight">
-            Faculty Leave Approval System
+            CMRTC Gate Pass Approval System
           </h1>
           <h2 className="text-primary text-lg font-semibold mt-2">
             CSE (AI &amp; ML) Department
@@ -269,37 +269,6 @@ export default function LoginForm() {
             </form>
           )}
         </div>
-
-        {/* Demo Credentials — only on login view */}
-        {view === 'login' && (
-          <div className="mt-8 w-full">
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-              <button
-                onClick={() => setShowCredentials(!showCredentials)}
-                className="flex items-center gap-2 mb-2 w-full text-left"
-              >
-                <span className="material-symbols-outlined text-primary text-[20px]">info</span>
-                <span className="text-xs font-bold uppercase tracking-wider text-primary flex-1">Demo Credentials</span>
-                <span className="material-symbols-outlined text-primary text-[18px]">
-                  {showCredentials ? 'expand_less' : 'expand_more'}
-                </span>
-              </button>
-              {showCredentials && (
-                <div className="grid grid-cols-1 gap-2 text-xs text-slate-600 dark:text-slate-400">
-                  <div className="flex justify-between border-b border-primary/10 pb-1">
-                    <span className="font-medium">HOD:</span>
-                    <code>hod@cseaiml.edu / HOD@12345</code>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium">Faculty:</span>
-                    <code>faculty1@cseaiml.edu / Faculty@1</code>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Footer */}
         <footer className="mt-12 text-center">
           <p className="text-slate-400 text-xs">
