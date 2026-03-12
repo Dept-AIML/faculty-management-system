@@ -7,6 +7,7 @@ import PendingRequests from '@/components/hod/PendingRequests'
 import FacultyManagement from '@/components/hod/FacultyManagement'
 import QRScanner from '@/components/hod/QRScanner'
 import ReportGenerator from '@/components/hod/ReportGenerator'
+import AvatarUpload from '@/components/ui/AvatarUpload'
 
 const TABS = [
   { id: 'requests', label: 'Dashboard', icon: 'dashboard' },
@@ -74,10 +75,14 @@ export default function HODDashboardClient({ profile }: { profile: Profile }) {
       {/* HOD Profile Summary */}
       <section className="p-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full border-2 border-primary/20 p-0.5 flex-shrink-0">
-            <div className="h-full w-full rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-bold">
-              {initials}
-            </div>
+          <div className="h-16 w-16 rounded-full border-2 border-primary/20 flex-shrink-0 overflow-hidden">
+            {profile.avatar_url ? (
+              <img src={profile.avatar_url} alt={profile.full_name} className="h-full w-full object-cover rounded-full" />
+            ) : (
+              <div className="h-full w-full rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-bold">
+                {initials}
+              </div>
+            )}
           </div>
           <div>
             <h2 className="text-lg font-bold">{profile.full_name}</h2>
@@ -118,7 +123,7 @@ export default function HODDashboardClient({ profile }: { profile: Profile }) {
         {activeTab === 'reports' && <ReportGenerator />}
         {activeTab === 'settings' && (
           <div className="p-4 space-y-4">
-            <div className="rounded-xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-3">
+            <div className="rounded-xl bg-white dark:bg-slate-900 p-5 shadow-sm border border-slate-100 dark:border-slate-800 space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-lg">Settings</h3>
                 <button onClick={() => setEditMode(e => !e)} className="text-primary text-sm font-semibold flex items-center gap-1">
@@ -126,6 +131,17 @@ export default function HODDashboardClient({ profile }: { profile: Profile }) {
                   {editMode ? 'Cancel' : 'Edit'}
                 </button>
               </div>
+
+              {/* Avatar Upload */}
+              <div className="flex justify-center py-2">
+                <AvatarUpload
+                  userId={profile.id}
+                  currentUrl={profile.avatar_url}
+                  initials={initials}
+                  size="lg"
+                />
+              </div>
+
               {editMode ? (
                 <div className="space-y-3">
                   {[
