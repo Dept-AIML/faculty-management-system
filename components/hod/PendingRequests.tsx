@@ -14,6 +14,17 @@ function formatDate(dt: string) {
   return new Date(dt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function formatDateTime(dt: string) {
+  return new Date(dt).toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  })
+}
+
+function formatTimeOnly(dt: string) {
+  return new Date(dt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+}
+
 function getDurationDays(start: string, end: string) {
   const diff = new Date(end).getTime() - new Date(start).getTime()
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
@@ -195,6 +206,7 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
                 <div>
                   <p className="text-sm font-bold">{req.profiles?.full_name}</p>
                   <p className="text-xs text-slate-500">ID: {req.profiles?.faculty_id || 'N/A'}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{req.profiles?.designation || ''}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1">
@@ -204,18 +216,27 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
             </div>
 
             <div className="space-y-1.5 mb-4">
+              {/* Submitted timestamp */}
+              <div className="flex items-start gap-2">
+                <span className="material-symbols-outlined text-slate-400 text-sm mt-0.5">schedule</span>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  <span className="font-semibold">Submitted:</span> {formatDateTime(req.created_at)}
+                </p>
+              </div>
               <div className="flex items-start gap-2">
                 <span className="material-symbols-outlined text-slate-400 text-sm mt-0.5">info</span>
                 <p className="text-xs text-slate-600 dark:text-slate-300">
                   <span className="font-semibold">Reason:</span> {req.reason}
                 </p>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-slate-400 text-sm mt-0.5">calendar_month</span>
-                <p className="text-xs text-slate-600 dark:text-slate-300">
-                  <span className="font-semibold">Date:</span> {formatDate(req.start_datetime)} – {formatDate(req.end_datetime)} ({getDurationDays(req.start_datetime, req.end_datetime)})
-                </p>
-              </div>
+              {req.status === 'approved' && req.approved_at && (
+                <div className="flex items-start gap-2">
+                  <span className="material-symbols-outlined text-green-500 text-sm mt-0.5">check_circle</span>
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold">Approved at:</span> {formatDateTime(req.approved_at)}
+                  </p>
+                </div>
+              )}
               {req.hod_remarks && (
                 <div className="flex items-start gap-2">
                   <span className="material-symbols-outlined text-slate-400 text-sm mt-0.5">comment</span>
@@ -246,7 +267,7 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
             {req.status === 'approved' && (
               <div className="flex items-center gap-1 text-green-600 text-xs font-bold">
                 <span className="material-symbols-outlined text-sm">check_circle</span>
-                Approved {req.approved_at ? formatDate(req.approved_at) : ''}
+                Approved {req.approved_at ? formatDateTime(req.approved_at) : ''}
               </div>
             )}
 
