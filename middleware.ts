@@ -28,40 +28,19 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Not logged in and not on login page → redirect to login
+  // Not logged in → redirect to login (except login page itself)
   if (!user && pathname !== '/login') {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Logged in but on login page → redirect to dashboard
+  // Logged in + on login page → send to faculty by default
+  // The faculty/hod page will redirect to the correct dashboard based on role
   if (user && pathname === '/login') {
-    // Fetch role to determine where to redirect
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
     const url = request.nextUrl.clone()
-    url.pathname = profile?.role === 'hod' ? '/hod' : '/faculty'
+    url.pathname = '/faculty'
     return NextResponse.redirect(url)
-  }
-
-  // HOD route protection
-  if (user && pathname.startsWith('/hod')) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.role !== 'hod') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/faculty'
-      return NextResponse.redirect(url)
-    }
   }
 
   return supabaseResponse
@@ -69,6 +48,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Skip: Next.js internals, static files, images, and ALL /api/* routes
+    '/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
