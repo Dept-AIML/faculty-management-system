@@ -56,14 +56,21 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
   }
 
   const fetchRequests = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('leave_requests')
-      .select('*, profiles(*)')
-      .order('created_at', { ascending: false })
-    if (error) console.error('Fetch error:', error)
-    setRequests((data as any) || [])
+    try {
+      const res = await fetch('/api/hod/leave-requests')
+      if (!res.ok) {
+        const { error } = await res.json()
+        console.error('Fetch error:', error)
+        setLoading(false)
+        return
+      }
+      const { data } = await res.json()
+      setRequests(data || [])
+    } catch (err) {
+      console.error('Fetch exception:', err)
+    }
     setLoading(false)
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     fetchRequests()
