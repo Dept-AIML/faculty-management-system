@@ -272,7 +272,7 @@ export default function LoginForm() {
         {/* Footer */}
         <footer className="mt-12 text-center">
           <p className="text-slate-400 text-xs">
-            © 2024 CMR Technical Campus<br />
+            © 2026 CMR Technical Campus<br />
             Department of CSE (Artificial Intelligence &amp; Machine Learning)
           </p>
         </footer>
