@@ -285,7 +285,7 @@ export default function LoginForm() {
                     { name: 'Anant Mishra',      roll: '247R1A66K6' },
                     { name: 'C. Jaya Rudra',     roll: '247R1A6674' },
                     { name: 'T. Nihal',          roll: '247R1A66B6' },
-                    { name: 'S. Nazmin',         roll: '247R1A66Q4' },
+                    { name: 'Sk. Nazmin',         roll: '247R1A66Q4' },
                     { name: 'B. Tanmayee Sree',  roll: '247R1A66L0' },
                   ].map(({ name, roll }) => (
                     <div key={roll} className="flex items-center justify-between text-xs">
