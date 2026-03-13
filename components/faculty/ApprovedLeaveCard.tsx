@@ -102,7 +102,7 @@ export default function ApprovedLeaveCard({ leave, facultyName, facultyIdCode }:
       <Modal isOpen={showQR} onClose={() => setShowQR(false)} title="Leave Gate Pass QR">
         <div className="flex flex-col items-center gap-4">
           <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-            Show this QR to HOD when leaving and returning
+            Show this QR to HOD when returning
           </p>
 
           <div ref={qrWrapRef} className="p-4 bg-white rounded-xl border-2 border-primary/20 shadow-inner">
