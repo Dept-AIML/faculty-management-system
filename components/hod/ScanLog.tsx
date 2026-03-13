@@ -48,14 +48,17 @@ export default function ScanLog({ refreshKey }: { refreshKey?: number }) {
   const fetchLogs = useCallback(async () => {
     setLoading(true)
 
-    // Fetch last 20 re-entry scans (these are the completion events)
-    const { data: logs } = await supabase
+    // Fetch last 20 scans — use FK hints to resolve ambiguous relationships
+    // qr_scan_logs has two FKs to profiles (faculty_id + scanned_by_hod)
+    const { data: logs, error: logsError } = await supabase
       .from('qr_scan_logs')
-      .select('*, profiles(*), leave_requests(leave_type, approved_at, reason)')
+      .select('*, profiles!faculty_id(*), leave_requests(leave_type, approved_at, reason)')
       .order('scanned_at', { ascending: false })
       .limit(20)
 
-    if (!logs) { setLoading(false); return }
+    if (logsError) console.error('ScanLog fetch error:', logsError.message)
+
+    if (!logs || logsError) { setLoading(false); return }
 
     // Group by leave_request_id to find exit+reentry pairs
     const grouped: Record<string, any[]> = {}
