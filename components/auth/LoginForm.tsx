@@ -81,13 +81,13 @@ export default function LoginForm() {
           <h1 className="text-slate-900 dark:text-slate-100 text-3xl font-bold tracking-tight leading-tight">
             CMRTC Gate Pass Approval System
           </h1>
-          <h2 className="text-primary text-lg font-semibold mt-2">
+          {/*<h2 className="text-primary text-lg font-semibold mt-2">
             CSE (AI &amp; ML) Department
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-4">
             Secure portal for leave management and approvals.
           </p>
-        </div>
+        </div>*/}
 
         {/* Card */}
         <div className="w-full bg-white dark:bg-slate-900/50 rounded-xl shadow-xl p-6 border border-slate-200 dark:border-slate-800">
@@ -269,6 +269,47 @@ export default function LoginForm() {
             </form>
           )}
         </div>
+
+          {/* Developed By */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">code</span>
+                  Developed By
+                </p>
+                <div className="space-y-1">
+                  {[
+                    { name: 'Anant Mishra',       roll: '247R1A66K6' },
+                    { name: 'C. Jaya Rudra',       roll: '247R1A6674' },
+                    { name: 'T. Nihal',            roll: '247R1A66B6' },
+                    { name: 'S. Nazmin',           roll: '247R1A66Q4' },
+                    { name: 'B. Tanmayee Sree',    roll: '247R1A66L0' },
+                  ].map(({ name, roll }) => (
+                    <div key={roll} className="flex items-center justify-between text-xs">
+                      <span className="text-slate-700 dark:text-slate-300 font-medium">{name}</span>
+                      <code className="text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{roll}</code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-primary/15" />
+
+              {/* Under Guidance */}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[14px]">school</span>
+                  Under the Guidance of
+                </p>
+                <div className="text-center">
+                  <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Dr. S. Rao. Chintalapudi</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Professor, HOD — CSE (AI &amp; ML)</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
         {/* Footer */}
         <footer className="mt-12 text-center">
           <p className="text-slate-400 text-xs">
