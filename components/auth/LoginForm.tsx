@@ -17,7 +17,6 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resetSent, setResetSent] = useState(false)
-  const [showCredentials, setShowCredentials] = useState(true)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,8 +85,8 @@ export default function LoginForm() {
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-4">
             Secure portal for leave management and approvals.
-          </p>
-        </div>*/}
+          </p>*/}
+        </div>
 
         {/* Card */}
         <div className="w-full bg-white dark:bg-slate-900/50 rounded-xl shadow-xl p-6 border border-slate-200 dark:border-slate-800">
@@ -270,7 +269,12 @@ export default function LoginForm() {
           )}
         </div>
 
-          {/* Developed By */}
+        {/* ─── DEVELOPED BY / GUIDANCE (login view only) ─────── */}
+        {view === 'login' && (
+          <div className="mt-8 w-full">
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+
+              {/* Developed By */}
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-2 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-[14px]">code</span>
@@ -278,11 +282,11 @@ export default function LoginForm() {
                 </p>
                 <div className="space-y-1">
                   {[
-                    { name: 'Anant Mishra',       roll: '247R1A66K6' },
-                    { name: 'C. Jaya Rudra',       roll: '247R1A6674' },
-                    { name: 'T. Nihal',            roll: '247R1A66B6' },
-                    { name: 'S. Nazmin',           roll: '247R1A66Q4' },
-                    { name: 'B. Tanmayee Sree',    roll: '247R1A66L0' },
+                    { name: 'Anant Mishra',      roll: '247R1A66K6' },
+                    { name: 'C. Jaya Rudra',     roll: '247R1A6674' },
+                    { name: 'T. Nihal',          roll: '247R1A66B6' },
+                    { name: 'S. Nazmin',         roll: '247R1A66Q4' },
+                    { name: 'B. Tanmayee Sree',  roll: '247R1A66L0' },
                   ].map(({ name, roll }) => (
                     <div key={roll} className="flex items-center justify-between text-xs">
                       <span className="text-slate-700 dark:text-slate-300 font-medium">{name}</span>
@@ -310,6 +314,7 @@ export default function LoginForm() {
             </div>
           </div>
         )}
+
         {/* Footer */}
         <footer className="mt-12 text-center">
           <p className="text-slate-400 text-xs">
@@ -317,6 +322,7 @@ export default function LoginForm() {
             Department of CSE (Artificial Intelligence &amp; Machine Learning)
           </p>
         </footer>
+
       </div>
     </div>
   )
