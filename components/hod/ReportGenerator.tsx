@@ -3,10 +3,32 @@
 import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-const MONTHS = [
+const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
+
+/** Generate available {month, year} pairs from March 2026 up to today */
+function getAvailableMonths(): { month: number; year: number; label: string }[] {
+  const start = new Date(2026, 2, 1) // March 2026
+  const now = new Date()
+  const result: { month: number; year: number; label: string }[] = []
+
+  const cursor = new Date(start)
+  while (
+    cursor.getFullYear() < now.getFullYear() ||
+    (cursor.getFullYear() === now.getFullYear() && cursor.getMonth() <= now.getMonth())
+  ) {
+    result.push({
+      year: cursor.getFullYear(),
+      month: cursor.getMonth(),
+      label: `${MONTH_NAMES[cursor.getMonth()]} ${cursor.getFullYear()}`,
+    })
+    cursor.setMonth(cursor.getMonth() + 1)
+  }
+
+  return result.reverse() // Most recent first
+}
 
 interface FacultyLeaveDetail {
   facultyId: string
@@ -41,28 +63,36 @@ function fmtDuration(mins: number | null) {
 
 export default function ReportGenerator() {
   const supabase = createClient()
-  const currentYear = new Date().getFullYear()
-  const [month, setMonth] = useState(new Date().getMonth())
-  const [year, setYear] = useState(currentYear)
+  const availableMonths = getAvailableMonths()
+
+  // Default to the most recent available month
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const [loading, setLoading] = useState(false)
   const [reportData, setReportData] = useState<FacultyLeaveDetail[] | null>(null)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
-  const generateReport = useCallback(async () => {
-    setLoading(true)
-    setReportData(null)
+  const selected = availableMonths[selectedIndex]
 
+  const fetchReportData = useCallback(async () => {
+    if (!selected) return null
+    const { month, year } = selected
     const startDate = new Date(year, month, 1).toISOString()
-    const endDate = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
+    const endDate   = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
 
+    // leave_requests has two FKs to profiles (faculty_id + approved_by) — use hint
     const { data: leaves, error } = await supabase
       .from('leave_requests')
-      .select('*, profiles(*)')
+      .select('*, profiles!faculty_id(*)')
       .eq('status', 'approved')
       .gte('approved_at', startDate)
       .lte('approved_at', endDate)
       .order('approved_at', { ascending: true })
 
-    if (error || !leaves) { setLoading(false); return }
+    if (error) {
+      console.error('Report fetch error:', error.message)
+      return null
+    }
+    if (!leaves) return []
 
     const facultyMap: Record<string, FacultyLeaveDetail> = {}
 
@@ -86,7 +116,7 @@ export default function ReportGenerator() {
         .eq('leave_request_id', leave.id)
         .order('scanned_at', { ascending: true })
 
-      const exitLog = scanLogs?.find(s => s.scan_type === 'exit') || null
+      const exitLog    = scanLogs?.find(s => s.scan_type === 'exit')    || null
       const reentryLog = scanLogs?.find(s => s.scan_type === 'reentry') || null
 
       let durationMins: number | null = null
@@ -98,27 +128,43 @@ export default function ReportGenerator() {
       }
 
       facultyMap[fid].leaves.push({
-        date: fmt(leave.approved_at, 'date') || '—',
-        reason: leave.reason,
-        approvedAt: fmt(leave.approved_at, 'time') || '—',
-        exitTime: exitLog ? fmt(exitLog.scanned_at, 'time') : fmt(leave.approved_at, 'time'),
+        date:        fmt(leave.approved_at, 'date') || '—',
+        reason:      leave.reason,
+        approvedAt:  fmt(leave.approved_at, 'time') || '—',
+        exitTime:    exitLog    ? fmt(exitLog.scanned_at,    'time') : fmt(leave.approved_at, 'time'),
         reentryTime: reentryLog ? fmt(reentryLog.scanned_at, 'time') : null,
         durationMins,
         exceededLimit,
       })
     }
 
-    setReportData(Object.values(facultyMap))
-    setLoading(false)
-  }, [month, year, supabase])
+    return Object.values(facultyMap)
+  }, [selected, supabase])
 
-  const downloadPDF = useCallback(async () => {
-    if (!reportData) return
+  const generateReport = useCallback(async () => {
+    setLoading(true)
+    setReportData(null)
+    setFetchError(null)
+
+    const data = await fetchReportData()
+    if (data === null) {
+      setFetchError('Failed to fetch report data. Please check your connection and try again.')
+      setLoading(false)
+      return
+    }
+
+    setReportData(data)
+    setLoading(false)
+  }, [fetchReportData])
+
+  // ── PDF download ────────────────────────────────────────────────────────────
+  const downloadPDF = useCallback(async (data: FacultyLeaveDetail[]) => {
+    if (!selected) return
     const { default: jsPDF } = await import('jspdf')
     const { default: autoTable } = await import('jspdf-autotable')
 
     const doc = new jsPDF({ orientation: 'landscape' })
-    const monthLabel = `${MONTHS[month]} ${year}`
+    const monthLabel = selected.label
     const pageW = doc.internal.pageSize.width
 
     doc.setFontSize(16)
@@ -135,18 +181,24 @@ export default function ReportGenerator() {
     let totalLeaves = 0
     let totalExceeded = 0
 
-    for (const faculty of reportData) {
+    for (const faculty of data) {
       if (faculty.leaves.length === 0) continue
-      totalLeaves += faculty.leaves.length
+      totalLeaves   += faculty.leaves.length
       const exceeded = faculty.leaves.filter(l => l.exceededLimit).length
       totalExceeded += exceeded
 
       doc.setFontSize(10)
       doc.setTextColor('#ec5b13')
-      doc.text(`${faculty.fullName}  (${faculty.facultyId})${faculty.designation ? '  —  ' + faculty.designation : ''}`, 14, startY)
+      doc.text(
+        `${faculty.fullName}  (${faculty.facultyId})${faculty.designation ? '  —  ' + faculty.designation : ''}`,
+        14, startY
+      )
       doc.setFontSize(8)
       doc.setTextColor('#555555')
-      doc.text(`${faculty.email}   |   Total: ${faculty.leaves.length} permission(s)   |   Exceeded 1hr: ${exceeded}`, 14, startY + 4)
+      doc.text(
+        `${faculty.email}   |   Total: ${faculty.leaves.length} permission(s)   |   Exceeded 1hr: ${exceeded}`,
+        14, startY + 4
+      )
 
       autoTable(doc, {
         startY: startY + 8,
@@ -155,95 +207,147 @@ export default function ReportGenerator() {
           l.date,
           l.reason.length > 42 ? l.reason.slice(0, 42) + '…' : l.reason,
           l.approvedAt,
-          l.exitTime || '—',
+          l.exitTime    || '—',
           l.reentryTime || 'Still out',
           fmtDuration(l.durationMins),
           l.reentryTime ? (l.exceededLimit ? 'EXCEEDED' : 'ON TIME') : 'PENDING',
         ]),
-        headStyles: { fillColor: [236, 91, 19], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
-        bodyStyles: { fontSize: 7.5 },
-        alternateRowStyles: { fillColor: [255, 248, 245] },
-        columnStyles: { 1: { cellWidth: 58 } },
-        didParseCell: (data: any) => {
-          if (data.section === 'body' && data.column.index === 6) {
-            const val = String(data.cell.raw)
-            if (val === 'EXCEEDED') data.cell.styles.textColor = [200, 30, 30]
-            else if (val === 'ON TIME') data.cell.styles.textColor = [20, 150, 80]
-            else data.cell.styles.textColor = [180, 120, 0]
+        headStyles:          { fillColor: [236, 91, 19], textColor: 255, fontStyle: 'bold', fontSize: 7.5 },
+        bodyStyles:          { fontSize: 7.5 },
+        alternateRowStyles:  { fillColor: [255, 248, 245] },
+        columnStyles:        { 1: { cellWidth: 58 } },
+        didParseCell: (cellData: any) => {
+          if (cellData.section === 'body' && cellData.column.index === 6) {
+            const val = String(cellData.cell.raw)
+            if      (val === 'EXCEEDED') cellData.cell.styles.textColor = [200, 30,  30]
+            else if (val === 'ON TIME')  cellData.cell.styles.textColor = [20,  150, 80]
+            else                         cellData.cell.styles.textColor = [180, 120, 0]
           }
         },
         margin: { left: 14, right: 14 },
       })
 
       startY = (doc as any).lastAutoTable.finalY + 12
-
       if (startY > doc.internal.pageSize.height - 30) {
         doc.addPage()
         startY = 20
       }
     }
 
-    const totalFaculty = reportData.length
     doc.setFontSize(9)
     doc.setTextColor('#333333')
     doc.text(
-      `Summary — Faculty: ${totalFaculty}  |  Total Permissions: ${totalLeaves}  |  Exceeded 1hr Limit: ${totalExceeded}`,
+      `Summary — Faculty: ${data.length}  |  Total Permissions: ${totalLeaves}  |  Exceeded 1hr Limit: ${totalExceeded}`,
       14, Math.min(startY + 4, doc.internal.pageSize.height - 10)
     )
 
     doc.save(`Leave_Report_${monthLabel.replace(' ', '_')}.pdf`)
-  }, [reportData, month, year])
+  }, [selected])
 
-  const monthLabel = `${MONTHS[month]} ${year}`
-  const totalLeaves = reportData?.reduce((a, f) => a + f.leaves.length, 0) ?? 0
+  // ── CSV download ─────────────────────────────────────────────────────────────
+  const downloadCSV = useCallback((data: FacultyLeaveDetail[]) => {
+    if (!selected) return
+    const rows: string[][] = []
+    rows.push([
+      'Faculty Name', 'Faculty ID', 'Designation', 'Email',
+      'Date', 'Reason', 'Approved At', 'Exit Time',
+      'Re-entry Time', 'Duration', 'Status',
+    ])
+
+    for (const faculty of data) {
+      for (const l of faculty.leaves) {
+        rows.push([
+          faculty.fullName,
+          faculty.facultyId,
+          faculty.designation,
+          faculty.email,
+          l.date,
+          l.reason.replace(/,/g, ';'),
+          l.approvedAt,
+          l.exitTime    || '—',
+          l.reentryTime || 'Still out',
+          fmtDuration(l.durationMins),
+          l.reentryTime ? (l.exceededLimit ? 'EXCEEDED' : 'ON TIME') : 'PENDING',
+        ])
+      }
+    }
+
+    const csv     = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+    const blob    = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url     = URL.createObjectURL(blob)
+    const link    = document.createElement('a')
+    link.href     = url
+    link.download = `Leave_Report_${selected.label.replace(' ', '_')}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }, [selected])
+
+  const monthLabel    = selected?.label ?? ''
+  const totalLeaves   = reportData?.reduce((a, f) => a + f.leaves.length, 0)               ?? 0
   const totalExceeded = reportData?.reduce((a, f) => a + f.leaves.filter(l => l.exceededLimit).length, 0) ?? 0
 
   return (
     <div className="p-4 space-y-4">
+      {/* ── Controls ── */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-lg">analytics</span>
           Department Reports
         </h3>
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <select
-            value={month}
-            onChange={(e) => setMonth(Number(e.target.value))}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium px-3 py-2 focus:ring-primary focus:border-primary"
-          >
-            {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
-          </select>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium px-3 py-2 focus:ring-primary focus:border-primary"
-          >
-            {[currentYear - 1, currentYear, currentYear + 1].map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
-        <button
-          onClick={generateReport}
-          disabled={loading}
-          className="w-full bg-primary/10 text-primary py-2.5 rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Generating...
-            </>
-          ) : 'Generate Report'}
-        </button>
+
+        {availableMonths.length === 0 ? (
+          <p className="text-xs text-slate-500 text-center py-2">No report periods available yet.</p>
+        ) : (
+          <>
+            <select
+              value={selectedIndex}
+              onChange={(e) => { setSelectedIndex(Number(e.target.value)); setReportData(null) }}
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium px-3 py-2 mb-4 focus:ring-primary focus:border-primary"
+            >
+              {availableMonths.map((m, i) => (
+                <option key={`${m.year}-${m.month}`} value={i}>{m.label}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={generateReport}
+              disabled={loading}
+              className="w-full bg-primary/10 text-primary py-2.5 rounded-lg text-xs font-bold hover:bg-primary/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Generating…
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-base">summarize</span>
+                  Generate Report — {monthLabel}
+                </>
+              )}
+            </button>
+          </>
+        )}
       </div>
 
+      {/* ── Error ── */}
+      {fetchError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 text-sm text-red-700">
+          <span className="material-symbols-outlined text-[18px] flex-shrink-0 mt-0.5">error</span>
+          <span>{fetchError}</span>
+        </div>
+      )}
+
+      {/* ── Summary cards ── */}
       {reportData && (
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Faculty', value: reportData.length, color: 'text-primary', bg: 'bg-primary/5' },
-            { label: 'Total Permissions', value: totalLeaves, color: 'text-green-600', bg: 'bg-green-50' },
-            { label: 'Exceeded 1hr', value: totalExceeded, color: 'text-red-600', bg: 'bg-red-50' },
+            { label: 'Faculty',            value: reportData.length, color: 'text-primary',   bg: 'bg-primary/5'  },
+            { label: 'Total Permissions',  value: totalLeaves,       color: 'text-green-600', bg: 'bg-green-50'   },
+            { label: 'Exceeded 1hr',       value: totalExceeded,     color: 'text-red-600',   bg: 'bg-red-50'     },
           ].map(c => (
             <div key={c.label} className={`${c.bg} rounded-xl p-3 text-center border border-slate-100`}>
               <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
@@ -253,10 +357,32 @@ export default function ReportGenerator() {
         </div>
       )}
 
+      {/* ── Empty state ── */}
       {reportData && reportData.length === 0 && (
         <p className="text-center text-slate-400 text-sm py-8">No approved permissions for {monthLabel}</p>
       )}
 
+      {/* ── Download buttons ── */}
+      {reportData && reportData.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => downloadPDF(reportData)}
+            className="border-2 border-dashed border-primary/30 py-3 rounded-xl text-xs font-semibold text-primary flex items-center justify-center gap-2 hover:border-primary/60 hover:bg-primary/5 transition-colors"
+          >
+            <span className="material-symbols-outlined text-lg">picture_as_pdf</span>
+            Download PDF
+          </button>
+          <button
+            onClick={() => downloadCSV(reportData)}
+            className="border-2 border-dashed border-green-400/40 py-3 rounded-xl text-xs font-semibold text-green-600 flex items-center justify-center gap-2 hover:border-green-500/60 hover:bg-green-50 transition-colors"
+          >
+            <span className="material-symbols-outlined text-lg">table_view</span>
+            Download CSV
+          </button>
+        </div>
+      )}
+
+      {/* ── Per-faculty tables ── */}
       {reportData && reportData.map(faculty => (
         <div key={faculty.facultyId} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
           <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
@@ -324,16 +450,6 @@ export default function ReportGenerator() {
           </div>
         </div>
       ))}
-
-      {reportData && reportData.length > 0 && (
-        <button
-          onClick={downloadPDF}
-          className="w-full border-2 border-dashed border-primary/30 py-3 rounded-xl text-xs font-semibold text-primary flex items-center justify-center gap-2 hover:border-primary/60 hover:bg-primary/5 transition-colors"
-        >
-          <span className="material-symbols-outlined text-lg">download</span>
-          Download PDF Report — {monthLabel}
-        </button>
-      )}
     </div>
   )
 }
