@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -17,6 +17,19 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resetSent, setResetSent] = useState(false)
+
+  // Show a friendly message if the callback route redirected here with an error
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const callbackError = params.get('error')
+    if (callbackError === 'expired_reset_link') {
+      setError('Your password reset link has expired. Please request a new one.')
+      setView('forgot')
+    } else if (callbackError === 'invalid_reset_link') {
+      setError('This reset link is invalid. Please request a new one.')
+      setView('forgot')
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,8 +59,9 @@ export default function LoginForm() {
     setLoading(true)
     setError(null)
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/login?type=recovery`,
+      redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
     })
 
     setLoading(false)
