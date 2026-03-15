@@ -48,6 +48,27 @@ export default function LeaveRequestForm({ facultyId, onSuccess }: LeaveRequestF
     if (error) {
       showToast('error', error.message)
     } else {
+      // Fetch the faculty's own profile to get name/id/designation for the email
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, faculty_id, designation')
+        .eq('id', facultyId)
+        .single()
+
+      // Fire-and-forget — don't block the UI on email delivery
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event:         'new_request',
+          facultyName:   profile?.full_name   ?? 'Faculty',
+          facultyIdCode: profile?.faculty_id  ?? '',
+          designation:   profile?.designation ?? '',
+          reason:        reason.trim(),
+          submittedAt:   now,
+        }),
+      }).catch((err) => console.warn('[notify] HOD email skipped:', err))
+
       showToast('success', 'Leave request submitted! Awaiting HOD approval.')
       setReason('')
       onSuccess?.()
