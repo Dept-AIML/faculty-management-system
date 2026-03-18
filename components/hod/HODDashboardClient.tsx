@@ -59,7 +59,7 @@ export default function HODDashboardClient({ profile }: { profile: Profile }) {
           </div>
           <div>
             <h1 className="text-sm font-bold leading-none text-primary">CSE AI&amp;ML</h1>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Faculty Portal</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">HOD Portal</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
