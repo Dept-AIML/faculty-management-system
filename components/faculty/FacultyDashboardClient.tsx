@@ -64,8 +64,8 @@ export default function FacultyDashboardClient({ profile }: { profile: Profile }
             onError={(e) => { (e.target as HTMLImageElement).src = 'https://lh3.googleusercontent.com/aida-public/AB6AXuBnrwTjigiZAhlLeFnycMqIRckn9EG8ncVdQXUxES6DpayAlRnz8gFn5uSlxW3fh5GZE7IKVCEFxKL_LuglGPK1yM2nUSXo-afvFDurQBD1dcAIPSr83nspIBT5g0jAZzUDHAzph4JWfoBTzvJ8JxMm6T7e0BJSLbXO-M5mrdHS4tXqVl2udhgupIX5jF_NVLctr71zlH-uLlsrhFkaMlaNiggnvLQDC-Zsz7IQugL2yjYAkg6uzzSfEXm_61YAmkdwbR1qDKWjSVjX' }}
           />
           <div>
-            <h1 className="text-lg font-bold leading-tight">Faculty Dashboard</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Computer Science Department</p>
+            <h1 className="text-sm font-bold leading-none text-primary">CSE AI&amp;ML</h1>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Faculty Portal</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
