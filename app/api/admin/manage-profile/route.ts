@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic'
 
 // Shared guard -- caller must be HOD
 async function requireHOD() {
-  // Guard: service role key must exist before doing anything
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return { error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY not set', status: 500 }
   }
@@ -109,7 +108,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'targetId is required' }, { status: 400 })
   }
 
-  // Fetch target to safety-check role
   const { data: target, error: fetchErr } = await admin
     .from('profiles')
     .select('role, full_name')
@@ -124,13 +122,39 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Cannot delete a HOD account' }, { status: 403 })
   }
 
-  // Step 1: Delete the auth user (profiles row cascades via FK)
+  // Manually clean up all related records before deleting the auth user.
+  // This is required until migration 008 (CASCADE fixes) has been run in Supabase.
+  // Even after the migration, this is a safe no-op since the DB will cascade anyway.
+
+  // 1. Delete qr_scan_logs where this user is the scanned faculty
+  const { error: scanLogErr } = await admin
+    .from('qr_scan_logs')
+    .delete()
+    .eq('faculty_id', targetId)
+
+  if (scanLogErr) {
+    console.error('[manage-profile DELETE] qr_scan_logs cleanup error:', scanLogErr)
+    return NextResponse.json({ error: `Failed to clean up scan logs: ${scanLogErr.message}` }, { status: 500 })
+  }
+
+  // 2. Delete leave_requests for this faculty
+  //    (approved_by FK on other records is handled by SET NULL in migration 008,
+  //     but for leave_requests where they are the faculty_id, we delete them)
+  const { error: leaveErr } = await admin
+    .from('leave_requests')
+    .delete()
+    .eq('faculty_id', targetId)
+
+  if (leaveErr) {
+    console.error('[manage-profile DELETE] leave_requests cleanup error:', leaveErr)
+    return NextResponse.json({ error: `Failed to clean up leave requests: ${leaveErr.message}` }, { status: 500 })
+  }
+
+  // 3. Now delete the auth user -- profiles row cascades automatically via its FK
   const { error: deleteAuthErr } = await admin.auth.admin.deleteUser(targetId)
   if (deleteAuthErr) {
     console.error('[manage-profile DELETE] auth.admin.deleteUser error:', deleteAuthErr)
-
-    // Fallback: if auth delete fails, try deleting just the profile row directly
-    // This handles edge cases where the auth user was already removed
+    // Last resort: delete the profile row directly
     const { error: profileDeleteErr } = await admin
       .from('profiles')
       .delete()
@@ -143,7 +167,6 @@ export async function DELETE(req: NextRequest) {
         { status: 500 }
       )
     }
-    // Profile row deleted even though auth delete failed -- still a success
     return NextResponse.json({ ok: true, deleted: targetId, note: 'profile removed, auth user may have already been deleted' })
   }
 
