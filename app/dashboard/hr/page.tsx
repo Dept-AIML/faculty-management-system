@@ -1,14 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import FacultyDashboardClient from '@/components/faculty/FacultyDashboardClient'
+import HRDashboardClient from '@/components/hr/HRDashboardClient'
 
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Faculty Dashboard | CMR Leave System',
+  title: 'HR Dashboard | CMR Leave System',
 }
 
-export default async function FacultyPage() {
+export default async function HRDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -35,10 +35,7 @@ export default async function FacultyPage() {
   }
 
   if (!profile) redirect('/login')
+  if (profile.role !== 'hr') redirect('/dashboard')
 
-  // HOD and HR must use their own dashboards
-  if (profile.role === 'hod') redirect('/dashboard/hod')
-  if (profile.role === 'hr')  redirect('/dashboard/hr')
-
-  return <FacultyDashboardClient profile={profile} />
+  return <HRDashboardClient profile={profile} />
 }

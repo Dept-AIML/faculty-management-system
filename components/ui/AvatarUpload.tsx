@@ -39,7 +39,7 @@ export default function AvatarUpload({ userId, currentUrl, initials, size = 'lg'
     const objectUrl = URL.createObjectURL(file)
     setPreview(objectUrl)
 
-    // Upload to Supabase Storage — use userId as filename so it auto-overwrites
+    // Upload to Supabase Storage -- use userId as filename so it auto-overwrites
     const ext = file.name.split('.').pop() || 'jpg'
     const path = `${userId}.${ext}`
 
@@ -87,7 +87,7 @@ export default function AvatarUpload({ userId, currentUrl, initials, size = 'lg'
 
   return (
     <div className="flex flex-col items-center gap-2">
-      {/* Avatar circle — click to upload */}
+      {/* Avatar circle -- click to upload */}
       <div
         className={`relative ${sizeClass} rounded-full ring-2 ring-primary/20 cursor-pointer group flex-shrink-0`}
         onClick={() => fileRef.current?.click()}

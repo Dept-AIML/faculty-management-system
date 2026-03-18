@@ -116,7 +116,7 @@ export default function ApprovedLeaveCard({ leave, facultyName, facultyIdCode }:
 
           <div className="text-center text-xs text-slate-600 dark:text-slate-400 space-y-1">
             <p className="font-semibold text-slate-800 dark:text-slate-200">{facultyName}</p>
-            <p>{facultyIdCode} · {leaveTypeLabel(leave.leave_type)}</p>
+            <p>{facultyIdCode} - {leaveTypeLabel(leave.leave_type)}</p>
             <p>{formatDateRange(leave.start_datetime, leave.end_datetime)}</p>
           </div>
 

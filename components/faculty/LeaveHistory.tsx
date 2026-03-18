@@ -88,7 +88,7 @@ export default function LeaveHistory({ requests }: LeaveHistoryProps) {
               onClick={() => setPage(p => p - 1)}
               className="text-xs text-primary font-bold disabled:opacity-30"
             >
-              ← Prev
+              &larr; Prev
             </button>
             <span className="text-xs text-slate-400">Page {page + 1} of {totalPages}</span>
             <button
@@ -96,7 +96,7 @@ export default function LeaveHistory({ requests }: LeaveHistoryProps) {
               onClick={() => setPage(p => p + 1)}
               className="text-xs text-primary font-bold disabled:opacity-30"
             >
-              Next →
+              Next &rarr;
             </button>
           </div>
         )}

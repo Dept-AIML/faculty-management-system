@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { LeaveRequest, Profile } from '@/types'
 import Modal from '@/components/ui/Modal'
-import { v4 as uuidv4 } from 'uuid'
 
 interface PendingRequestsProps {
   hodId: string
+  approverRole?: 'hod' | 'hr'
 }
 
 function formatDate(dt: string) {
@@ -19,10 +19,6 @@ function formatDateTime(dt: string) {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit', hour12: true,
   })
-}
-
-function formatTimeOnly(dt: string) {
-  return new Date(dt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
 }
 
 function getDurationDays(start: string, end: string) {
@@ -50,9 +46,14 @@ function leaveTypeBadge(type: string) {
   return { className: map[type] || 'bg-slate-100 text-slate-600', label: label[type] || type }
 }
 
+function roleBadge(role?: string) {
+  if (role === 'hr') return <span className="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700">HR</span>
+  return null
+}
+
 type Filter = 'all' | 'pending' | 'approved' | 'rejected'
 
-export default function PendingRequests({ hodId }: PendingRequestsProps) {
+export default function PendingRequests({ hodId, approverRole = 'hod' }: PendingRequestsProps) {
   const supabase = createClient()
   const [requests, setRequests] = useState<(LeaveRequest & { profiles: Profile })[]>([])
   const [filter, setFilter] = useState<Filter>('all')
@@ -60,6 +61,7 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
   const [rejectModal, setRejectModal] = useState<{ open: boolean; leaveId: string }>({ open: false, leaveId: '' })
   const [remarks, setRemarks] = useState('')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const [actioning, setActioning] = useState<string | null>(null)
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg })
@@ -95,30 +97,28 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
   }, [fetchRequests, supabase])
 
   const handleApprove = async (leaveId: string) => {
-    const qrToken = uuidv4()
-    const now = new Date().toISOString()
-
-    const { error } = await supabase.from('leave_requests').update({
-      status: 'approved',
-      approved_by: hodId,
-      approved_at: now,
-      start_datetime: now,        // leave starts at moment of approval
-      qr_token: qrToken,
-      qr_generated_at: now,
-      qr_used: false,             // fresh, unused QR
-    }).eq('id', leaveId)
-
-    if (error) showToast('error', error.message)
+    setActioning(leaveId)
+    const res = await fetch('/api/hod/leave-requests', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leaveId, action: 'approve' }),
+    })
+    const data = await res.json()
+    setActioning(null)
+    if (!res.ok) showToast('error', data.error || 'Failed to approve')
     else { showToast('success', 'Leave approved! QR code generated.'); fetchRequests() }
   }
 
   const handleReject = async () => {
-    const { error } = await supabase.from('leave_requests').update({
-      status: 'rejected',
-      hod_remarks: remarks,
-    }).eq('id', rejectModal.leaveId)
-
-    if (error) showToast('error', error.message)
+    setActioning(rejectModal.leaveId)
+    const res = await fetch('/api/hod/leave-requests', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ leaveId: rejectModal.leaveId, action: 'reject', remarks }),
+    })
+    const data = await res.json()
+    setActioning(null)
+    if (!res.ok) showToast('error', data.error || 'Failed to reject')
     else {
       showToast('success', 'Leave rejected.')
       setRejectModal({ open: false, leaveId: '' })
@@ -154,7 +154,7 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
         {[
           { label: 'Total Pending', value: pendingCount, color: 'text-amber-600', bg: 'bg-amber-50' },
           { label: 'Approved Today', value: approvedToday, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: 'Total Faculty', value: totalFaculty, color: 'text-primary', bg: 'bg-primary/5' },
+          { label: approverRole === 'hr' ? 'Faculty+HR' : 'Total Faculty', value: totalFaculty, color: 'text-primary', bg: 'bg-primary/5' },
         ].map(card => (
           <div key={card.label} className={`${card.bg} rounded-xl p-3 text-center border border-slate-100 dark:border-slate-800`}>
             <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
@@ -162,6 +162,16 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
           </div>
         ))}
       </div>
+
+      {/* HR own-leave notice */}
+      {approverRole === 'hr' && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-start gap-2">
+          <span className="material-symbols-outlined text-amber-500 text-sm mt-0.5">info</span>
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            Your own leave requests are handled by the HOD. They will not appear here.
+          </p>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
@@ -181,7 +191,9 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold">
-          {filter === 'pending' ? `Pending Approvals (${pendingCount})` : `${filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)} Requests (${filtered.length})`}
+          {filter === 'pending'
+            ? `Pending Approvals (${pendingCount})`
+            : `${filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1)} Requests (${filtered.length})`}
         </h3>
         <span className="text-xs text-slate-500 font-medium italic">Recent first</span>
       </div>
@@ -195,6 +207,7 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
       {filtered.map(req => {
         const { className: badgeClass, label: badgeLabel } = leaveTypeBadge(req.leave_type)
         const initials = req.profiles?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'F'
+        const isActioning = actioning === req.id
 
         return (
           <div key={req.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
@@ -204,7 +217,10 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
                   {initials}
                 </div>
                 <div>
-                  <p className="text-sm font-bold">{req.profiles?.full_name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-bold">{req.profiles?.full_name}</p>
+                    {roleBadge(req.profiles?.role)}
+                  </div>
                   <p className="text-xs text-slate-500">ID: {req.profiles?.faculty_id || 'N/A'}</p>
                   <p className="text-[10px] text-slate-400 mt-0.5">{req.profiles?.designation || ''}</p>
                 </div>
@@ -216,7 +232,6 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
             </div>
 
             <div className="space-y-1.5 mb-4">
-              {/* Submitted timestamp */}
               <div className="flex items-start gap-2">
                 <span className="material-symbols-outlined text-slate-400 text-sm mt-0.5">schedule</span>
                 <p className="text-xs text-slate-600 dark:text-slate-300">
@@ -251,15 +266,19 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
               <div className="flex gap-2">
                 <button
                   onClick={() => setRejectModal({ open: true, leaveId: req.id })}
-                  className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300"
+                  disabled={isActioning}
+                  className="flex-1 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-700 dark:text-slate-300 disabled:opacity-50"
                 >
                   Reject
                 </button>
                 <button
                   onClick={() => handleApprove(req.id)}
-                  className="flex-1 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90 transition-opacity"
+                  disabled={isActioning}
+                  className="flex-1 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-1"
                 >
-                  Approve
+                  {isActioning ? (
+                    <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span> Approving...</>
+                  ) : 'Approve'}
                 </button>
               </div>
             )}
@@ -301,7 +320,7 @@ export default function PendingRequests({ hodId }: PendingRequestsProps) {
             </button>
             <button
               onClick={handleReject}
-              disabled={!remarks.trim()}
+              disabled={!remarks.trim() || !!actioning}
               className="flex-1 py-2 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50"
             >
               Confirm Reject

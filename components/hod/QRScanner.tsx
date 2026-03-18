@@ -13,7 +13,12 @@ interface ScanResult {
   leaveType: string
 }
 
-export default function QRScanner({ hodId }: { hodId: string }) {
+interface QRScannerProps {
+  hodId: string
+  scannerRole?: 'hod' | 'hr'
+}
+
+export default function QRScanner({ hodId, scannerRole = 'hod' }: QRScannerProps) {
   const supabase = createClient()
   const [scanning, setScanning] = useState(false)
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
@@ -34,7 +39,13 @@ export default function QRScanner({ hodId }: { hodId: string }) {
     await stopScanner()
     const payload = parseQRPayload(decodedText)
     if (!payload) {
-      setError('Invalid QR code — not a valid leave pass.')
+      setError('Invalid QR code - not a valid leave pass.')
+      return
+    }
+
+    // HR cannot scan their own return QR
+    if (scannerRole === 'hr' && payload.facultyId === hodId) {
+      setError('You cannot scan your own re-entry QR code. Please ask the HOD to scan it.')
       return
     }
 
@@ -44,7 +55,7 @@ export default function QRScanner({ hodId }: { hodId: string }) {
       .eq('id', payload.leaveId)
       .eq('qr_token', payload.qrToken)
       .eq('status', 'approved')
-      .eq('qr_used', false)   // one-use check
+      .eq('qr_used', false)
       .single()
 
     if (lvErr || !leave) {
@@ -74,29 +85,26 @@ export default function QRScanner({ hodId }: { hodId: string }) {
       leaveType: payload.leaveType,
     })
     setRefreshLog(p => p + 1)
-  }, [supabase, hodId, stopScanner])
+  }, [supabase, hodId, scannerRole, stopScanner])
 
   const startScanner = useCallback(async () => {
     setError(null)
     setScanResult(null)
 
-    // Check camera permission availability
     if (!navigator.mediaDevices?.getUserMedia) {
       setError('Camera not supported in this browser. Use Chrome or Safari on a mobile device.')
       return
     }
 
     try {
-      // Explicitly request camera permission first
       await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-    } catch (err) {
+    } catch {
       setError('Camera access denied. Please allow camera permissions and try again.')
       return
     }
 
     setScanning(true)
 
-    // Use Html5Qrcode (not Scanner) for full control
     const { Html5Qrcode } = await import('html5-qrcode')
     const qr = new Html5Qrcode('qr-reader-element')
     html5QrRef.current = qr
@@ -127,9 +135,18 @@ export default function QRScanner({ hodId }: { hodId: string }) {
         </p>
       </div>
 
-      {/* Scanner container — must NOT have overflow:hidden */}
+      {/* HR restriction notice */}
+      {scannerRole === 'hr' && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-start gap-2">
+          <span className="material-symbols-outlined text-amber-500 text-sm mt-0.5">info</span>
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            You can scan re-entry QR codes for all faculty. Your own re-entry must be scanned by the HOD.
+          </p>
+        </div>
+      )}
+
+      {/* Scanner container */}
       <div className="rounded-2xl border-2 border-slate-800 bg-slate-900 relative min-h-[300px] flex flex-col items-center justify-center">
-        {/* The div html5-qrcode mounts into */}
         <div
           id="qr-reader-element"
           className={`w-full ${scanning ? 'block' : 'hidden'}`}
@@ -170,14 +187,14 @@ export default function QRScanner({ hodId }: { hodId: string }) {
       {scanResult && (
         <div className="rounded-xl p-4 border-2 bg-green-50 border-green-200 dark:bg-green-900/20">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-2xl">🏠</span>
+            <span className="material-symbols-outlined text-2xl text-green-600">home</span>
             <div>
               <p className="font-bold text-sm">{scanResult.facultyName}</p>
               <p className="text-xs text-slate-500">{scanResult.facultyIdCode}</p>
             </div>
           </div>
-          <p className="text-sm font-bold text-green-700">✅ Re-entry Logged Successfully</p>
-          <p className="text-xs text-slate-500 mt-1">{scanResult.scannedAt} · {scanResult.leaveType}</p>
+          <p className="text-sm font-bold text-green-700">Re-entry Logged Successfully</p>
+          <p className="text-xs text-slate-500 mt-1">{scanResult.scannedAt} | {scanResult.leaveType}</p>
         </div>
       )}
 

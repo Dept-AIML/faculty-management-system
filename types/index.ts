@@ -5,7 +5,7 @@ export interface Profile {
   full_name: string
   faculty_id: string | null
   email: string
-  role: 'faculty' | 'hod'
+  role: 'faculty' | 'hod' | 'hr'
   designation: string | null
   department: string | null
   avatar_url: string | null

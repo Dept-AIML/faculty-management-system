@@ -48,7 +48,7 @@ export default function ScanLog({ refreshKey }: { refreshKey?: number }) {
   const fetchLogs = useCallback(async () => {
     setLoading(true)
 
-    // Fetch last 20 scans — use FK hints to resolve ambiguous relationships
+    // Fetch last 20 scans -- use FK hints to resolve ambiguous relationships
     // qr_scan_logs has two FKs to profiles (faculty_id + scanned_by_hod)
     const { data: logs, error: logsError } = await supabase
       .from('qr_scan_logs')
@@ -88,7 +88,7 @@ export default function ScanLog({ refreshKey }: { refreshKey?: number }) {
         scan_type: log.scan_type,
         scanned_at: log.scanned_at,
         leave_request_id: log.leave_request_id,
-        faculty_name: (log as any).profiles?.full_name || '—',
+        faculty_name: (log as any).profiles?.full_name || '--',
         faculty_id_code: (log as any).profiles?.faculty_id || null,
         leave_type: leaveReq?.leave_type || '',
         paired_time,
@@ -138,7 +138,7 @@ export default function ScanLog({ refreshKey }: { refreshKey?: number }) {
                 return (
                   <tr key={entry.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                     <td className="px-3 py-2.5 font-medium">{entry.faculty_name}</td>
-                    <td className="px-3 py-2.5 text-slate-500">{entry.faculty_id_code || '—'}</td>
+                    <td className="px-3 py-2.5 text-slate-500">{entry.faculty_id_code || '--'}</td>
                     <td className="px-3 py-2.5">
                       {entry.scan_type === 'exit' ? (
                         <span className="px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 font-bold">EXIT</span>
@@ -155,7 +155,7 @@ export default function ScanLog({ refreshKey }: { refreshKey?: number }) {
                         ? <span className="font-medium text-orange-600">{fmtTime(entry.scanned_at)}</span>
                         : entry.paired_time
                           ? <span className="text-orange-600">{entry.paired_time}</span>
-                          : <span className="text-slate-300">—</span>
+                          : <span className="text-slate-300">--</span>
                       }
                     </td>
                     <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">
@@ -173,7 +173,7 @@ export default function ScanLog({ refreshKey }: { refreshKey?: number }) {
                           {exceeded && <span className="ml-1 text-[10px]">⚠</span>}
                         </span>
                       ) : (
-                        <span className="text-slate-300">—</span>
+                        <span className="text-slate-300">--</span>
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-slate-500">{leaveTypeLabel(entry.leave_type)}</td>

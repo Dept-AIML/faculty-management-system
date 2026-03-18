@@ -11,7 +11,7 @@ export function generatePDF(data: ReportRow[], month: string): void {
   doc.text('CMR Technical Campus', 105, 20, { align: 'center' })
   doc.setFontSize(12)
   doc.setTextColor('#000000')
-  doc.text('CSE (AI & ML) Department — Faculty Leave Report', 105, 30, { align: 'center' })
+  doc.text('CSE (AI & ML) Department -- Faculty Leave Report', 105, 30, { align: 'center' })
   doc.setFontSize(10)
   doc.setTextColor('#666666')
   doc.text(`Report for: ${month}`, 105, 38, { align: 'center' })

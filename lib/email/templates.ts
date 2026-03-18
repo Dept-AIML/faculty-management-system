@@ -12,7 +12,7 @@ function base(content: string, previewText: string): string {
 </head>
 <body style="margin:0;padding:0;background:#f8f6f6;${FONT}">
   <!-- Preview text (hidden) -->
-  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${previewText}&nbsp;‌&nbsp;‌&nbsp;‌</div>
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${previewText}&nbsp;&nbsp;&nbsp;</div>
 
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f6f6;padding:32px 16px;">
     <tr><td align="center">
@@ -81,9 +81,9 @@ function ctaButton(label: string, url: string): string {
   </table>`
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Template 1: HOD — new leave request submitted
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Template 1: HOD -- new leave request submitted
+// -----------------------------------------------------------------------------
 export interface NewRequestEmailData {
   facultyName: string
   facultyIdCode: string
@@ -103,7 +103,7 @@ export function newRequestEmail(data: NewRequestEmailData): { subject: string; h
       <tr>
         <td>
           <p style="margin:0 0 2px;font-size:16px;font-weight:700;color:#1a1a1a;">${data.facultyName}</p>
-          <p style="margin:0 0 8px;font-size:12px;color:#888;">${data.designation} &nbsp;·&nbsp; ${data.facultyIdCode}</p>
+          <p style="margin:0 0 8px;font-size:12px;color:#888;">${data.designation} &nbsp;-&nbsp; ${data.facultyIdCode}</p>
           ${badge('Pending Approval', BRAND_COLOR, '#fde8db')}
         </td>
       </tr>
@@ -115,17 +115,17 @@ export function newRequestEmail(data: NewRequestEmailData): { subject: string; h
       ${infoRow('🕐', 'Submitted', data.submittedAt)}
     </table>
 
-    ${ctaButton('Review Request →', data.dashboardUrl)}
+    ${ctaButton('Review Request ->', data.dashboardUrl)}
   `
   return {
-    subject: `New Gate Pass Request — ${data.facultyName}`,
+    subject: `New Gate Pass Request -- ${data.facultyName}`,
     html: base(content, `${data.facultyName} has submitted a gate pass request awaiting your approval.`),
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Template 2: Faculty — request approved
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Template 2: Faculty -- request approved
+// -----------------------------------------------------------------------------
 export interface ApprovedEmailData {
   facultyName: string
   reason: string
@@ -154,19 +154,19 @@ export function approvedEmail(data: ApprovedEmailData): { subject: string; html:
       ${infoRow('🕐', 'Approved at', data.approvedAt)}
     </table>
 
-    ${ctaButton('Open Dashboard & View QR →', data.dashboardUrl)}
+    ${ctaButton('Open Dashboard & View QR ->', data.dashboardUrl)}
 
     <p style="margin:20px 0 0;font-size:11px;color:#aaa;">The QR code can only be used once. Keep it ready at the gate.</p>
   `
   return {
-    subject: `Gate Pass Approved ✅ — CMRTC`,
+    subject: `Gate Pass Approved ✅ -- CMRTC`,
     html: base(content, `Your gate pass request has been approved. Open the dashboard to view your QR code.`),
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Template 3: Faculty — request rejected
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// Template 3: Faculty -- request rejected
+// -----------------------------------------------------------------------------
 export interface RejectedEmailData {
   facultyName: string
   reason: string
@@ -195,10 +195,10 @@ export function rejectedEmail(data: RejectedEmailData): { subject: string; html:
       ${infoRow('💬', 'HOD remarks', data.hodRemarks || 'No remarks provided.')}
     </table>
 
-    ${ctaButton('Go to Dashboard →', data.dashboardUrl)}
+    ${ctaButton('Go to Dashboard ->', data.dashboardUrl)}
   `
   return {
-    subject: `Gate Pass Request Not Approved — CMRTC`,
+    subject: `Gate Pass Request Not Approved -- CMRTC`,
     html: base(content, `Your gate pass request has not been approved. Check the HOD's remarks for details.`),
   }
 }

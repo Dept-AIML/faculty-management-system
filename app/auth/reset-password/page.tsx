@@ -21,7 +21,7 @@ export default function ResetPasswordPage() {
 
   // Verify there is an active recovery session when the page mounts.
   // Supabase fires an INITIAL_SESSION event after exchangeCodeForSession
-  // sets the cookies — if there is no session at all, the link was invalid.
+  // sets the cookies -- if there is no session at all, the link was invalid.
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) setView('invalid')
@@ -66,7 +66,7 @@ export default function ResetPasswordPage() {
     }
   }
 
-  // ─── Strength indicator ────────────────────────────────────────────────────
+  // --- Strength indicator ----------------------------------------------------
   const getStrength = (p: string): { label: string; color: string; width: string } => {
     if (!p) return { label: '', color: 'bg-slate-200', width: 'w-0' }
     const hasUpper = /[A-Z]/.test(p)
@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
   }
   const strength = getStrength(password)
 
-  // ─── Invalid / expired link ────────────────────────────────────────────────
+  // --- Invalid / expired link ------------------------------------------------
   if (view === 'invalid') {
     return (
       <Shell>
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
     )
   }
 
-  // ─── Success screen ────────────────────────────────────────────────────────
+  // --- Success screen --------------------------------------------------------
   if (view === 'success') {
     return (
       <Shell>
@@ -145,7 +145,7 @@ export default function ResetPasswordPage() {
     )
   }
 
-  // ─── Reset form ────────────────────────────────────────────────────────────
+  // --- Reset form ------------------------------------------------------------
   return (
     <Shell>
       <div className="space-y-5">
@@ -256,7 +256,7 @@ export default function ResetPasswordPage() {
   )
 }
 
-// ─── Shared shell (logo + card) ────────────────────────────────────────────
+// --- Shared shell (logo + card) --------------------------------------------
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-4">

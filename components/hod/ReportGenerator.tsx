@@ -54,7 +54,7 @@ function fmt(dt: string | null, mode: 'date' | 'time' = 'time') {
 }
 
 function fmtDuration(mins: number | null) {
-  if (mins === null) return '—'
+  if (mins === null) return '--'
   const h = Math.floor(mins / 60)
   const m = Math.round(mins % 60)
   if (h === 0) return `${m}m`
@@ -79,7 +79,7 @@ export default function ReportGenerator() {
     const startDate = new Date(year, month, 1).toISOString()
     const endDate   = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
 
-    // leave_requests has two FKs to profiles (faculty_id + approved_by) — use hint
+    // leave_requests has two FKs to profiles (faculty_id + approved_by) -- use hint
     const { data: leaves, error } = await supabase
       .from('leave_requests')
       .select('*, profiles!faculty_id(*)')
@@ -128,9 +128,9 @@ export default function ReportGenerator() {
       }
 
       facultyMap[fid].leaves.push({
-        date:        fmt(leave.approved_at, 'date') || '—',
+        date:        fmt(leave.approved_at, 'date') || '--',
         reason:      leave.reason,
-        approvedAt:  fmt(leave.approved_at, 'time') || '—',
+        approvedAt:  fmt(leave.approved_at, 'time') || '--',
         exitTime:    exitLog    ? fmt(exitLog.scanned_at,    'time') : fmt(leave.approved_at, 'time'),
         reentryTime: reentryLog ? fmt(reentryLog.scanned_at, 'time') : null,
         durationMins,
@@ -157,7 +157,7 @@ export default function ReportGenerator() {
     setLoading(false)
   }, [fetchReportData])
 
-  // ── PDF download ────────────────────────────────────────────────────────────
+  // -- PDF download ------------------------------------------------------------
   const downloadPDF = useCallback(async (data: FacultyLeaveDetail[]) => {
     if (!selected) return
     const { default: jsPDF } = await import('jspdf')
@@ -172,7 +172,7 @@ export default function ReportGenerator() {
     doc.text('CMR Technical Campus', pageW / 2, 16, { align: 'center' })
     doc.setFontSize(11)
     doc.setTextColor('#000000')
-    doc.text('CSE (AI & ML) — Faculty Permission / Leave Report', pageW / 2, 24, { align: 'center' })
+    doc.text('CSE (AI & ML) -- Faculty Permission / Leave Report', pageW / 2, 24, { align: 'center' })
     doc.setFontSize(9)
     doc.setTextColor('#666666')
     doc.text(`Period: ${monthLabel}   |   Generated: ${new Date().toLocaleString('en-IN')}`, pageW / 2, 30, { align: 'center' })
@@ -190,7 +190,7 @@ export default function ReportGenerator() {
       doc.setFontSize(10)
       doc.setTextColor('#ec5b13')
       doc.text(
-        `${faculty.fullName}  (${faculty.facultyId})${faculty.designation ? '  —  ' + faculty.designation : ''}`,
+        `${faculty.fullName}  (${faculty.facultyId})${faculty.designation ? '  --  ' + faculty.designation : ''}`,
         14, startY
       )
       doc.setFontSize(8)
@@ -207,7 +207,7 @@ export default function ReportGenerator() {
           l.date,
           l.reason.length > 42 ? l.reason.slice(0, 42) + '…' : l.reason,
           l.approvedAt,
-          l.exitTime    || '—',
+          l.exitTime    || '--',
           l.reentryTime || 'Still out',
           fmtDuration(l.durationMins),
           l.reentryTime ? (l.exceededLimit ? 'EXCEEDED' : 'ON TIME') : 'PENDING',
@@ -237,14 +237,14 @@ export default function ReportGenerator() {
     doc.setFontSize(9)
     doc.setTextColor('#333333')
     doc.text(
-      `Summary — Faculty: ${data.length}  |  Total Permissions: ${totalLeaves}  |  Exceeded 1hr Limit: ${totalExceeded}`,
+      `Summary -- Faculty: ${data.length}  |  Total Permissions: ${totalLeaves}  |  Exceeded 1hr Limit: ${totalExceeded}`,
       14, Math.min(startY + 4, doc.internal.pageSize.height - 10)
     )
 
     doc.save(`Leave_Report_${monthLabel.replace(' ', '_')}.pdf`)
   }, [selected])
 
-  // ── CSV download ─────────────────────────────────────────────────────────────
+  // -- CSV download -------------------------------------------------------------
   const downloadCSV = useCallback((data: FacultyLeaveDetail[]) => {
     if (!selected) return
     const rows: string[][] = []
@@ -264,7 +264,7 @@ export default function ReportGenerator() {
           l.date,
           l.reason.replace(/,/g, ';'),
           l.approvedAt,
-          l.exitTime    || '—',
+          l.exitTime    || '--',
           l.reentryTime || 'Still out',
           fmtDuration(l.durationMins),
           l.reentryTime ? (l.exceededLimit ? 'EXCEEDED' : 'ON TIME') : 'PENDING',
@@ -288,7 +288,7 @@ export default function ReportGenerator() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* ── Controls ── */}
+      {/* -- Controls -- */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-lg">analytics</span>
@@ -325,7 +325,7 @@ export default function ReportGenerator() {
               ) : (
                 <>
                   <span className="material-symbols-outlined text-base">summarize</span>
-                  Generate Report — {monthLabel}
+                  Generate Report -- {monthLabel}
                 </>
               )}
             </button>
@@ -333,7 +333,7 @@ export default function ReportGenerator() {
         )}
       </div>
 
-      {/* ── Error ── */}
+      {/* -- Error -- */}
       {fetchError && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 text-sm text-red-700">
           <span className="material-symbols-outlined text-[18px] flex-shrink-0 mt-0.5">error</span>
@@ -341,7 +341,7 @@ export default function ReportGenerator() {
         </div>
       )}
 
-      {/* ── Summary cards ── */}
+      {/* -- Summary cards -- */}
       {reportData && (
         <div className="grid grid-cols-3 gap-3">
           {[
@@ -357,12 +357,12 @@ export default function ReportGenerator() {
         </div>
       )}
 
-      {/* ── Empty state ── */}
+      {/* -- Empty state -- */}
       {reportData && reportData.length === 0 && (
         <p className="text-center text-slate-400 text-sm py-8">No approved permissions for {monthLabel}</p>
       )}
 
-      {/* ── Download buttons ── */}
+      {/* -- Download buttons -- */}
       {reportData && reportData.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <button
@@ -382,13 +382,13 @@ export default function ReportGenerator() {
         </div>
       )}
 
-      {/* ── Per-faculty tables ── */}
+      {/* -- Per-faculty tables -- */}
       {reportData && reportData.map(faculty => (
         <div key={faculty.facultyId} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
           <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between">
             <div>
               <p className="text-sm font-bold">{faculty.fullName}</p>
-              <p className="text-[10px] text-slate-500">{faculty.facultyId}{faculty.designation && ` · ${faculty.designation}`}</p>
+              <p className="text-[10px] text-slate-500">{faculty.facultyId}{faculty.designation && ` - ${faculty.designation}`}</p>
             </div>
             <div className="flex gap-2">
               <span className="flex flex-col items-center bg-primary/10 text-primary rounded-lg px-2.5 py-1">
@@ -424,7 +424,7 @@ export default function ReportGenerator() {
                       <span className="block truncate" title={l.reason}>{l.reason}</span>
                     </td>
                     <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{l.approvedAt}</td>
-                    <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{l.exitTime || '—'}</td>
+                    <td className="px-3 py-2.5 text-slate-500 whitespace-nowrap">{l.exitTime || '--'}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {l.reentryTime
                         ? <span className="text-green-600 font-medium">{l.reentryTime}</span>

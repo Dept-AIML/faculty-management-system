@@ -55,7 +55,7 @@ export default function LeaveRequestForm({ facultyId, onSuccess }: LeaveRequestF
         .eq('id', facultyId)
         .single()
 
-      // Fire-and-forget — don't block the UI on email delivery
+      // Fire-and-forget -- don't block the UI on email delivery
       fetch('/api/notify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

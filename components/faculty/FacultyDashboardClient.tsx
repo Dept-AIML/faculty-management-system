@@ -83,7 +83,7 @@ export default function FacultyDashboardClient({ profile }: { profile: Profile }
       </header>
 
       <main className="flex-1 pb-24">
-        {/* Profile Card — always visible */}
+        {/* Profile Card -- always visible */}
         <section className="p-4">
           <div className="flex items-center gap-4 rounded-xl bg-white dark:bg-slate-900 p-4 shadow-sm border border-slate-100 dark:border-slate-800">
             <div className="h-16 w-16 rounded-full ring-2 ring-primary/20 flex-shrink-0 overflow-hidden">

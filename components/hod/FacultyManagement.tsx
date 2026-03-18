@@ -12,6 +12,7 @@ export default function FacultyManagement() {
   const [loading, setLoading] = useState(true)
   const [addModal, setAddModal] = useState(false)
   const [editModal, setEditModal] = useState<{ open: boolean; profile: Profile | null }>({ open: false, profile: null })
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean; profile: Profile | null }>({ open: false, profile: null })
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
   // Add form
@@ -76,8 +77,30 @@ export default function FacultyManagement() {
   }
 
   const toggleActive = async (p: Profile) => {
-    await supabase.from('profiles').update({ is_active: !p.is_active }).eq('id', p.id)
-    fetchFaculty()
+    const res = await fetch('/api/admin/manage-profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetId: p.id, action: 'toggle_active' }),
+    })
+    const data = await res.json()
+    if (!res.ok) showToast('error', data.error || 'Failed to update status')
+    else { showToast('success', `${p.full_name} marked ${data.is_active ? 'active' : 'inactive'}`); fetchFaculty() }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteModal.profile) return
+    const res = await fetch('/api/admin/manage-profile', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetId: deleteModal.profile.id }),
+    })
+    const data = await res.json()
+    if (!res.ok) showToast('error', data.error || 'Failed to delete')
+    else {
+      showToast('success', `${deleteModal.profile.full_name}'s account deleted`)
+      setDeleteModal({ open: false, profile: null })
+      fetchFaculty()
+    }
   }
 
   return (
@@ -128,18 +151,21 @@ export default function FacultyManagement() {
               </div>
               <div>
                 <p className="text-sm font-semibold leading-tight">{f.full_name}</p>
-                <p className="text-[10px] text-slate-500">{f.faculty_id} · {f.designation}</p>
+                <p className="text-[10px] text-slate-500">{f.faculty_id} | {f.designation}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${f.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                 {f.is_active ? 'Active' : 'Inactive'}
               </span>
-              <button onClick={() => openEdit(f)} className="text-slate-400 hover:text-primary transition-colors">
+              <button onClick={() => openEdit(f)} className="text-slate-400 hover:text-primary transition-colors" title="Edit">
                 <span className="material-symbols-outlined text-[18px]">edit</span>
               </button>
               <button onClick={() => toggleActive(f)} className="text-slate-400 hover:text-primary transition-colors" title={f.is_active ? 'Deactivate' : 'Activate'}>
                 <span className="material-symbols-outlined text-[18px]">{f.is_active ? 'toggle_on' : 'toggle_off'}</span>
+              </button>
+              <button onClick={() => setDeleteModal({ open: true, profile: f })} className="text-slate-400 hover:text-red-500 transition-colors" title="Delete">
+                <span className="material-symbols-outlined text-[18px]">delete</span>
               </button>
             </div>
           </div>
@@ -205,6 +231,40 @@ export default function FacultyManagement() {
           </div>
         </div>
       </Modal>
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={deleteModal.open} onClose={() => setDeleteModal({ open: false, profile: null })} title="Delete Faculty Account">
+        {deleteModal.profile && (
+          <div className="space-y-4">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+              <span className="material-symbols-outlined text-red-500 text-xl">warning</span>
+              <div>
+                <p className="text-sm font-bold text-red-800 dark:text-red-300">This action is permanent</p>
+                <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                  Deleting <strong>{deleteModal.profile.full_name}</strong>'s account will remove all their data and revoke login access. This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">
+              If you want to temporarily restrict access, use the <strong>toggle</strong> button to mark them inactive instead.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteModal({ open: false, profile: null })}
+                className="flex-1 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700"
+              >
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
     </div>
   )
 }

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/auth/reset-password'
 
   if (!code) {
-    // No code — malformed or expired link, send to login with an error flag
+    // No code -- malformed or expired link, send to login with an error flag
     return NextResponse.redirect(
       new URL('/login?error=invalid_reset_link', request.url)
     )
@@ -33,12 +33,12 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code)
 
   if (error) {
-    // Exchange failed — link likely expired (default is 1 hour)
+    // Exchange failed -- link likely expired (default is 1 hour)
     return NextResponse.redirect(
       new URL('/login?error=expired_reset_link', request.url)
     )
   }
 
-  // Session established — redirect to the reset password page
+  // Session established -- redirect to the reset password page
   return NextResponse.redirect(new URL(next, request.url))
 }

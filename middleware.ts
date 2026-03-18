@@ -23,23 +23,27 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session — MUST be called before any redirect checks
   const { data: { user } } = await supabase.auth.getUser()
-
   const { pathname } = request.nextUrl
 
-  // Not logged in → redirect to login (except login page and auth routes)
+  // Not logged in -> redirect to login
   if (!user && pathname !== '/login' && !pathname.startsWith('/auth/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Logged in + on login page → send to faculty by default
-  // The faculty/hod page will redirect to the correct dashboard based on role
+  // Logged in + on login page -> send to /dashboard (role-aware hub)
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone()
-    url.pathname = '/faculty'
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // Legacy /hod route -> redirect to /dashboard hub
+  if (user && pathname === '/hod') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
@@ -48,7 +52,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip: Next.js internals, static files, images, and ALL /api/* routes
     '/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

@@ -105,7 +105,7 @@ export default function LoginForm() {
         {/* Card */}
         <div className="w-full bg-white dark:bg-slate-900/50 rounded-xl shadow-xl p-6 border border-slate-200 dark:border-slate-800">
 
-          {/* ─── FORGOT PASSWORD VIEW ─────────────────────────── */}
+          {/* --- FORGOT PASSWORD VIEW --------------------------- */}
           {view === 'forgot' && (
             <div className="space-y-5">
               <div className="flex items-center gap-3 mb-2">
@@ -187,7 +187,7 @@ export default function LoginForm() {
             </div>
           )}
 
-          {/* ─── LOGIN VIEW ───────────────────────────────────── */}
+          {/* --- LOGIN VIEW ------------------------------------- */}
           {view === 'login' && (
             <form className="space-y-5" onSubmit={handleSubmit}>
               {error && (
@@ -283,7 +283,7 @@ export default function LoginForm() {
           )}
         </div>
 
-        {/* ─── DEVELOPED BY / GUIDANCE (login view only) ─────── */}
+        {/* --- DEVELOPED BY / GUIDANCE (login view only) ------- */}
         {view === 'login' && (
           <div className="mt-8 w-full">
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
@@ -321,7 +321,7 @@ export default function LoginForm() {
                 </p>
                 <div className="text-center">
                   <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">Dr. S Rao Chintalapudi</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Professor, HOD — CSE (AI &amp; ML)</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Professor, HOD -- CSE (AI &amp; ML)</p>
                 </div>
               </div>
 
